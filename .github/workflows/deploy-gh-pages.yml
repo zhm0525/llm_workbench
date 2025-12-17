@@ -1,6 +1,5 @@
 name: Deploy to GitHub Pages
 
-# grant minimal permissions required to publish Pages
 permissions:
   contents: read
   pages: write
@@ -10,7 +9,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: {}
+  workflow_dispatch: { }
 
 jobs:
   build-and-deploy:
@@ -18,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
