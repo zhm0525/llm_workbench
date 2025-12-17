@@ -1,0 +1,5 @@
+{
+  "name": "LLM Workbench",
+  "description": "A professional LLM testing tool supporting Gemini, OpenAI, Volcengine, and Aliyun with Notion/Feishu export capabilities.",
+  "requestFramePermissions": []
+}
