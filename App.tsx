@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import SidebarLeft from './components/SidebarLeft';
 import SidebarRight from './components/SidebarRight';
 import ChatWindow from './components/ChatWindow';
@@ -31,12 +31,23 @@ const App: React.FC = () => {
     }
   });
 
-  // Derive active config: Provider Settings + Global System Prompt
-  const activeConfig: AppConfig = {
+  // Resolve System Prompt with Arguments
+  const resolvedSystemPrompt = useMemo(() => {
+    let prompt = globalConfig.systemPrompt;
+    globalConfig.promptArguments.forEach(arg => {
+      if (!arg.key.trim()) return;
+      const regex = new RegExp(`\\{${arg.key}\\b\\}`, 'g');
+      prompt = prompt.replace(regex, arg.value);
+    });
+    return prompt;
+  }, [globalConfig.systemPrompt, globalConfig.promptArguments]);
+
+  // Derive active config
+  const activeConfig: AppConfig = useMemo(() => ({
     provider: globalConfig.currentProvider,
-    systemPrompt: globalConfig.systemPrompt,
+    systemPrompt: resolvedSystemPrompt,
     ...globalConfig.providers[globalConfig.currentProvider]
-  };
+  }), [globalConfig, resolvedSystemPrompt]);
 
   // Business Logic Hooks
   const { logs, addLog, clearLogs } = useLogs();

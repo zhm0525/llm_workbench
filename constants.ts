@@ -1,12 +1,12 @@
 import { ModelProvider, GlobalConfig } from './types';
 
-export const DEFAULT_SYSTEM_PROMPT = "You are a helpful, professional AI assistant. Answer concisely and accurately.";
+export const DEFAULT_SYSTEM_PROMPT = "You are a helpful, professional AI assistant. Answer concisely and accurately using {tone} tone and {language}.";
 
 export const PROVIDER_DEFAULTS: Record<ModelProvider, { baseUrl: string; defaultModel: string; placeholder: string }> = {
   [ModelProvider.Gemini]: {
     baseUrl: '', // Not used for Gemini SDK
-    defaultModel: 'gemini-2.5-flash',
-    placeholder: 'gemini-2.5-flash'
+    defaultModel: 'gemini-3-flash-preview',
+    placeholder: 'gemini-3-flash-preview'
   },
   [ModelProvider.OpenAI]: {
     baseUrl: 'https://api.openai.com/v1',
@@ -28,6 +28,10 @@ export const PROVIDER_DEFAULTS: Record<ModelProvider, { baseUrl: string; default
 export const INITIAL_GLOBAL_CONFIG: GlobalConfig = {
   currentProvider: ModelProvider.Gemini,
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
+  promptArguments: [
+    { key: 'tone', value: 'friendly' },
+    { key: 'language', value: 'English' }
+  ],
   providers: {
     [ModelProvider.Gemini]: {
       modelName: PROVIDER_DEFAULTS[ModelProvider.Gemini].defaultModel,

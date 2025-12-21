@@ -26,6 +26,11 @@ export interface Message {
   model?: string; // The model name that generated this message
 }
 
+export interface PromptArgument {
+  key: string;
+  value: string;
+}
+
 // Configuration for a specific provider
 export interface ProviderSettings {
   modelName: string;
@@ -36,7 +41,8 @@ export interface ProviderSettings {
 // Global state holding configurations
 export interface GlobalConfig {
   currentProvider: ModelProvider;
-  systemPrompt: string; // Unified System Prompt
+  systemPrompt: string;
+  promptArguments: PromptArgument[];
   providers: Record<ModelProvider, ProviderSettings>;
 }
 
