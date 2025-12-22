@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import SidebarLeft from './components/SidebarLeft';
 import SidebarRight from './components/SidebarRight';
 import ChatWindow from './components/ChatWindow';
 import LogPanel from './components/LogPanel';
-import { AppConfig, ExportConfig, ExportTarget, GlobalConfig } from './types';
+import { AppConfig, ExportConfig, ExportTarget, GlobalConfig, Attachment } from './types';
 import { INITIAL_GLOBAL_CONFIG } from './constants';
 import { Menu } from 'lucide-react';
 import { useLogs } from './hooks/useLogs';
@@ -17,6 +17,9 @@ const App: React.FC = () => {
 
   // Configuration State
   const [globalConfig, setGlobalConfig] = useState<GlobalConfig>(INITIAL_GLOBAL_CONFIG);
+  
+  // Lifted Input State for synchronization
+  const [inputText, setInputText] = useState('');
 
   const [exportConfig, setExportConfig] = useState<ExportConfig>({
     target: ExportTarget.Notion,
@@ -31,30 +34,55 @@ const App: React.FC = () => {
     }
   });
 
+  // Business Logic Hooks
+  const { logs, addLog, clearLogs } = useLogs();
+  
   // Resolve System Prompt with Arguments
   const resolvedSystemPrompt = useMemo(() => {
-    let prompt = globalConfig.systemPrompt;
-    globalConfig.promptArguments.forEach(arg => {
-      if (!arg.key.trim()) return;
-      const regex = new RegExp(`\\{${arg.key}\\b\\}`, 'g');
+    let prompt = globalConfig.systemPrompt.template;
+    const seenKeys = new Set<string>();
+    globalConfig.systemPrompt.arguments.forEach(arg => {
+      const key = arg.key.trim();
+      if (!key || seenKeys.has(key)) return;
+      seenKeys.add(key);
+      const regex = new RegExp(`\\{${key}\\b\\}`, 'g');
       prompt = prompt.replace(regex, arg.value);
     });
     return prompt;
-  }, [globalConfig.systemPrompt, globalConfig.promptArguments]);
+  }, [globalConfig.systemPrompt.template, globalConfig.systemPrompt.arguments]);
 
   // Derive active config
   const activeConfig: AppConfig = useMemo(() => ({
     provider: globalConfig.currentProvider,
-    systemPrompt: resolvedSystemPrompt,
+    systemPrompt: {
+      template: resolvedSystemPrompt
+    },
+    userPrompt: {
+      template: globalConfig.userPrompt.template
+    },
     ...globalConfig.providers[globalConfig.currentProvider]
   }), [globalConfig, resolvedSystemPrompt]);
 
-  // Business Logic Hooks
-  const { logs, addLog, clearLogs } = useLogs();
   const { messages, isLoading, handleSendMessage, clearChat } = useChat({
     config: activeConfig,
     onLog: addLog
   });
+
+  // Determine if configuration should be locked (locked if there are messages)
+  const isConfigLocked = messages.length > 0;
+
+  // Resolve User Prompt Preview (Dynamic based on current input)
+  const resolvedUserPrompt = useMemo(() => {
+    if (!inputText.trim()) return "";
+    return globalConfig.userPrompt.template.replace('{message}', inputText);
+  }, [globalConfig.userPrompt.template, inputText]);
+
+  // Wrapped Send Handler
+  const onSend = useCallback((text: string, attachments: Attachment[]) => {
+    const finalContent = globalConfig.userPrompt.template.replace('{message}', text);
+    handleSendMessage(finalContent, attachments);
+    setInputText('');
+  }, [handleSendMessage, globalConfig.userPrompt.template]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 w-full relative">
@@ -76,6 +104,10 @@ const App: React.FC = () => {
                 setGlobalConfig={setGlobalConfig} 
                 exportConfig={exportConfig}
                 setExportConfig={setExportConfig}
+                resolvedSystemPrompt={resolvedSystemPrompt}
+                resolvedUserPrompt={resolvedUserPrompt}
+                isLocked={isConfigLocked}
+                onLog={addLog}
              />
           </div>
       </div>
@@ -85,9 +117,11 @@ const App: React.FC = () => {
         <div className={`flex-1 flex flex-col overflow-hidden ${logPanelOpen ? 'mb-64 md:mb-80' : ''} transition-all duration-300`}>
              <ChatWindow 
                  messages={messages} 
-                 onSendMessage={handleSendMessage} 
+                 onSendMessage={onSend} 
                  isLoading={isLoading}
                  onClear={clearChat}
+                 inputText={inputText}
+                 setInputText={setInputText}
              />
         </div>
         

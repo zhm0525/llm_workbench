@@ -30,9 +30,9 @@ const parseStream = async (reader: ReadableStreamDefaultReader<Uint8Array>, onCh
     }
 };
 
-const buildMessages = (systemPrompt: string, history: Message[]) => {
+const buildMessages = (resolvedSystemPrompt: string, history: Message[]) => {
     return [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: resolvedSystemPrompt },
         ...history.map(msg => {
             if (msg.attachments && msg.attachments.length > 0) {
                 return {
@@ -65,7 +65,7 @@ export const generateOpenAICompatibleResponse = async (
       if (callbacks.onLog) callbacks.onLog({ category, summary, details });
   };
 
-  const messages = buildMessages(config.systemPrompt, history);
+  const messages = buildMessages(config.systemPrompt.template, history);
 
   const requestBody = {
     model: config.modelName,

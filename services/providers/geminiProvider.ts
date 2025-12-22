@@ -1,23 +1,32 @@
 import { GoogleGenAI } from "@google/genai";
 import { AppConfig, Message, StreamCallbacks } from '../../types';
 
+// Gemini provider implementation for generating streamed content responses
 export const generateGeminiResponse = async (
   config: AppConfig,
   history: Message[],
   callbacks: StreamCallbacks
 ) => {
-  if (!config.apiKey) throw new Error("API Key is required for Gemini");
+  // Always use process.env.API_KEY for authorization
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API_KEY environment variable is not defined.");
+  }
 
   const log = (category: 'info' | 'request' | 'response' | 'error', summary: string, details?: any) => {
       if (callbacks.onLog) callbacks.onLog({ category, summary, details });
   };
 
-  log('info', 'Initializing Gemini Client', { model: config.modelName });
+  // Default to gemini-3-flash-preview for general text tasks
+  const modelName = config.modelName || 'gemini-3-flash-preview';
 
-  const ai = new GoogleGenAI({ apiKey: config.apiKey });
-  const systemInstruction = config.systemPrompt;
+  log('info', 'Initializing Gemini Client', { model: modelName });
+
+  // Instantiate GenAI client right before use
+  const ai = new GoogleGenAI({ apiKey });
+  const systemInstruction = config.systemPrompt.template;
   
-  // Convert history excluding the last message (which is the new prompt)
+  // Transform application history into Gemini format
   const chatHistory = history.slice(0, -1).map(msg => ({
     role: msg.role === 'user' ? 'user' : 'model',
     parts: [
@@ -31,8 +40,9 @@ export const generateGeminiResponse = async (
     ]
   }));
 
+  // Create a chat session with system instructions and current context
   const chat = ai.chats.create({
-    model: config.modelName || 'gemini-2.5-flash',
+    model: modelName,
     config: {
       systemInstruction: systemInstruction,
     },
@@ -51,13 +61,14 @@ export const generateGeminiResponse = async (
   ];
 
   log('request', 'Sending Message to Gemini', {
-      model: config.modelName,
+      model: modelName,
       historyLength: chatHistory.length,
       currentMessageParts: parts.length,
       systemPrompt: systemInstruction
   });
 
   try {
+      // Initiate streaming response
       const result = await chat.sendMessageStream({
         message: parts
       });
@@ -65,6 +76,7 @@ export const generateGeminiResponse = async (
       log('info', 'Stream started');
 
       for await (const chunk of result) {
+        // Access .text property directly (not as a function call)
         const text = chunk.text;
         if (text) {
           callbacks.onChunk(text);

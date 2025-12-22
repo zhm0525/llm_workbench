@@ -23,7 +23,7 @@ export interface Message {
   content: string;
   attachments?: Attachment[];
   timestamp: number;
-  model?: string; // The model name that generated this message
+  model?: string;
 }
 
 export interface PromptArgument {
@@ -31,31 +31,36 @@ export interface PromptArgument {
   value: string;
 }
 
-// Configuration for a specific provider
 export interface ProviderSettings {
   modelName: string;
   apiKey: string;
   baseUrl: string;
 }
 
-// Global state holding configurations
 export interface GlobalConfig {
   currentProvider: ModelProvider;
-  systemPrompt: string;
-  promptArguments: PromptArgument[];
+  systemPrompt: {
+    template: string;
+    arguments: PromptArgument[];
+  };
+  userPrompt: {
+    template: string;
+  };
   providers: Record<ModelProvider, ProviderSettings>;
 }
 
-// Active configuration used by the service layer
 export interface AppConfig {
   provider: ModelProvider;
   modelName: string;
   apiKey: string;
-  systemPrompt: string;
-  baseUrl?: string; // For custom endpoints (Volcengine/Aliyun)
+  systemPrompt: {
+    template: string; // This will hold the resolved string in AppConfig
+  };
+  userPrompt: {
+    template: string;
+  };
+  baseUrl?: string;
 }
-
-// --- Export Configuration ---
 
 export interface NotionConfig {
   token: string;
@@ -65,7 +70,7 @@ export interface NotionConfig {
 export interface FeishuConfig {
   appId: string;
   appSecret: string;
-  wikiNodeToken: string; // The parent node token in the Wiki
+  wikiNodeToken: string;
 }
 
 export interface ExportConfig {

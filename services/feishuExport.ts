@@ -34,7 +34,6 @@ const getSpaceIdFromToken = async (token: string, wikiToken: string, log: Logger
     const data = await res.json();
     if (data.code !== 0) throw new Error(`Get Node Info Error (${data.code}): ${data.msg}`);
 
-    // Support both data.node.space_id (standard) and user suggestion data.space.space_id
     const spaceId = data.data?.node?.space_id || data.data?.space?.space_id;
     if (!spaceId) {
         log('error', 'Node Info Data', data);
@@ -98,29 +97,26 @@ const moveDocToWiki = async (token: string, spaceId: string, parentToken: string
     return finalId;
 };
 
-const buildContentBlocks = (title: string, systemPrompt: string, history: Message[]) => {
+const buildContentBlocks = (title: string, resolvedSystemPrompt: string, history: Message[]) => {
     const children: any[] = [];
     
-    // Title
     children.push({
         block_type: 3, 
         heading1: { elements: [{ text_run: { content: title, text_element_style: { bold: true } } }], style: {} }
     });
 
-    // System Prompt
-    if (systemPrompt && systemPrompt.trim()) {
+    if (resolvedSystemPrompt && resolvedSystemPrompt.trim()) {
         children.push({
             block_type: 5, 
             heading3: { elements: [{ text_run: { content: "⚙️ System Prompt", text_element_style: { bold: true } } }], style: {} }
         });
         children.push({
             block_type: 2, 
-            text: { elements: [{ text_run: { content: systemPrompt, text_element_style: {} } }], style: {} }
+            text: { elements: [{ text_run: { content: resolvedSystemPrompt, text_element_style: {} } }], style: {} }
         });
         children.push({ block_type: 2, text: { elements: [{ text_run: { content: " ", text_element_style: {} } }], style: {} } });
     }
 
-    // Messages
     history.forEach(msg => {
         children.push({
             block_type: 5, 
@@ -149,8 +145,7 @@ const buildContentBlocks = (title: string, systemPrompt: string, history: Messag
 
 // --- Main Function ---
 
-export const exportToFeishu = async (config: FeishuConfig, history: Message[], systemPrompt: string, log: Logger) => {
-    // 0. Validation
+export const exportToFeishu = async (config: FeishuConfig, history: Message[], resolvedSystemPrompt: string, log: Logger) => {
     const appId = config.appId?.trim();
     const appSecret = config.appSecret?.trim();
     const wikiToken = config.wikiNodeToken?.trim().replace(/^["']|["']$/g, '');
@@ -159,7 +154,6 @@ export const exportToFeishu = async (config: FeishuConfig, history: Message[], s
         throw new Error("Feishu configuration (App ID, Secret, Wiki Token) is incomplete.");
     }
 
-    // 1. Logic Execution
     const token = await getTenantToken(appId, appSecret, log);
     const spaceId = await getSpaceIdFromToken(token, wikiToken, log);
 
@@ -168,15 +162,13 @@ export const exportToFeishu = async (config: FeishuConfig, history: Message[], s
     const dateStr = new Date().toLocaleString();
     const docTitle = `Chat Export - ${dateStr}`;
     
-    // Create Doc (independent) -> Move to Wiki (attach)
     const rawDocId = await createDocument(token, docTitle, log);
     const finalDocId = await moveDocToWiki(token, spaceId, wikiToken, rawDocId, docTitle, log);
 
-    // 2. Content Writing
-    const blocks = buildContentBlocks(docTitle, systemPrompt, history);
+    const blocks = buildContentBlocks(docTitle, resolvedSystemPrompt, history);
     
     const BATCH_SIZE = 50;
-    const batchUrl = `https://open.feishu.cn/open-apis/docx/v1/documents/${finalDocId}/blocks/${finalDocId}/children`;
+    const batchUrl = `https://open.feishu.cn/open-apis/docx/v1/documents/${finalDocId}/children`;
 
     for (let i = 0; i < blocks.length; i += BATCH_SIZE) {
         const batch = blocks.slice(i, i + BATCH_SIZE);

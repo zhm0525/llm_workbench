@@ -14,12 +14,12 @@ const createTextChunks = (text: string) => {
     return textChunks;
 };
 
-const buildNotionBlocks = (systemPrompt: string, history: Message[]) => {
+const buildNotionBlocks = (resolvedSystemPrompt: string, history: Message[]) => {
     const blocks: any[] = [];
 
     // System Prompt
-    if (systemPrompt && systemPrompt.trim()) {
-        const chunks = createTextChunks(systemPrompt);
+    if (resolvedSystemPrompt && resolvedSystemPrompt.trim()) {
+        const chunks = createTextChunks(resolvedSystemPrompt);
         blocks.push({
             object: 'block',
             type: 'callout',
@@ -81,12 +81,11 @@ const buildNotionBlocks = (systemPrompt: string, history: Message[]) => {
 
 // --- Main Function ---
 
-export const exportToNotion = async (config: NotionConfig, history: Message[], systemPrompt: string, log: Logger) => {
+export const exportToNotion = async (config: NotionConfig, history: Message[], resolvedSystemPrompt: string, log: Logger) => {
   if (!config.databaseId) {
       throw new Error("Notion Database ID is missing");
   }
 
-  // 1. Create a New Page
   const dateStr = new Date().toLocaleString();
   const createPageUrl = "https://api.notion.com/v1/pages";
   
@@ -121,10 +120,8 @@ export const exportToNotion = async (config: NotionConfig, history: Message[], s
   const newPageId = pageData.id;
   log('info', `Notion: Page created successfully (${newPageId})`);
 
-  // 2. Build Blocks
-  const blocks = buildNotionBlocks(systemPrompt, history);
+  const blocks = buildNotionBlocks(resolvedSystemPrompt, history);
 
-  // 3. Batch Append
   for (let i = 0; i < blocks.length; i += BATCH_SIZE) {
     const currentBatch = blocks.slice(i, i + BATCH_SIZE);
     const targetUrl = `https://api.notion.com/v1/blocks/${newPageId}/children`;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Share2, FileText, Key, FolderInput, CheckCircle, AlertCircle, Hash, Lock, Database, Library } from 'lucide-react';
+import { Share2, FileText, Key, CheckCircle, AlertCircle, Hash, Lock, Database, Library } from 'lucide-react';
 import { ExportConfig, ExportTarget, Message, LogEntry, AppConfig } from '../types';
 import { exportChatHistory } from '../services/exportService';
 
@@ -53,7 +53,7 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ config, setConfig, chatHist
     setIsExporting(true);
     setStatus('idle');
     try {
-      await exportChatHistory(config, chatHistory, appConfig.systemPrompt, onLog);
+      await exportChatHistory(config, chatHistory, appConfig.systemPrompt.template, onLog);
       setStatus('success');
     } catch (e: any) {
       setStatus('error');

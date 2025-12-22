@@ -70,10 +70,18 @@ interface ChatWindowProps {
   onSendMessage: (text: string, attachments: Attachment[]) => void;
   isLoading: boolean;
   onClear: () => void;
+  inputText: string;
+  setInputText: (text: string) => void;
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage, isLoading, onClear }) => {
-  const [inputText, setInputText] = useState('');
+const ChatWindow: React.FC<ChatWindowProps> = ({ 
+  messages, 
+  onSendMessage, 
+  isLoading, 
+  onClear,
+  inputText,
+  setInputText
+}) => {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isComposing, setIsComposing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -95,10 +103,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage, isLoad
   const handleSend = () => {
     if ((!inputText.trim() && attachments.length === 0) || isLoading) return;
     onSendMessage(inputText, attachments);
-    setInputText('');
     setAttachments([]);
-    // Reset height
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    // Height reset handled by useEffect on inputText change to ''
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -120,7 +126,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage, isLoad
         await new Promise<void>((resolve) => {
             reader.onload = (e) => {
                 const result = e.target?.result as string;
-                // remove data url prefix
                 const base64 = result.split(',')[1];
                 newAttachments.push({
                     type: file.type.startsWith('image/') ? 'image' : 'file',
@@ -134,7 +139,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ messages, onSendMessage, isLoad
         });
       }
       setAttachments(prev => [...prev, ...newAttachments]);
-      // Reset input
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
