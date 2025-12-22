@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Send, Paperclip, X, Image as ImageIcon, Bot, User, Trash2, Cpu, ArrowUp } from 'lucide-react';
-import { Message, Attachment } from '../types';
+import { Message, Attachment, LogEntry } from '../types';
 
 // --- Sub-Component: Message Item ---
 
@@ -72,6 +72,7 @@ interface ChatWindowProps {
   onClear: () => void;
   inputText: string;
   setInputText: (text: string) => void;
+  onLog?: (entry: Omit<LogEntry, 'id' | 'timestamp'>) => void;
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ 
@@ -80,7 +81,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   isLoading, 
   onClear,
   inputText,
-  setInputText
+  setInputText,
+  onLog
 }) => {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isComposing, setIsComposing] = useState(false);
@@ -117,10 +119,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       const newAttachments: Attachment[] = [];
+      const fileNames: string[] = [];
+      
       for (let i = 0; i < e.target.files.length; i++) {
         const file = e.target.files[i];
+        fileNames.push(file.name);
         const reader = new FileReader();
         
         await new Promise<void>((resolve) => {
@@ -138,13 +143,25 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             reader.readAsDataURL(file);
         });
       }
+      
       setAttachments(prev => [...prev, ...newAttachments]);
+      if (onLog) {
+          onLog({ 
+            category: 'info', 
+            summary: `Attachments added: ${fileNames.join(', ')}`,
+            details: { count: newAttachments.length, files: fileNames }
+          });
+      }
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const removeAttachment = (index: number) => {
+    const removed = attachments[index];
     setAttachments(prev => prev.filter((_, i) => i !== index));
+    if (onLog && removed) {
+        onLog({ category: 'info', summary: `Attachment removed: ${removed.name}` });
+    }
   };
 
   return (

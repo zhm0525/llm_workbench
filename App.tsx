@@ -122,6 +122,7 @@ const App: React.FC = () => {
                  onClear={clearChat}
                  inputText={inputText}
                  setInputText={setInputText}
+                 onLog={addLog}
              />
         </div>
         
