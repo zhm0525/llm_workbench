@@ -168,7 +168,7 @@ export const exportToFeishu = async (config: FeishuConfig, history: Message[], r
     const blocks = buildContentBlocks(docTitle, resolvedSystemPrompt, history);
     
     const BATCH_SIZE = 50;
-    const batchUrl = `https://open.feishu.cn/open-apis/docx/v1/documents/${finalDocId}/children`;
+    const batchUrl = `https://open.feishu.cn/open-apis/docx/v1/documents/${finalDocId}/blocks/${finalDocId}/children`;
 
     for (let i = 0; i < blocks.length; i += BATCH_SIZE) {
         const batch = blocks.slice(i, i + BATCH_SIZE);
